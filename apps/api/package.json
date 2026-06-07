@@ -1,0 +1,28 @@
+{
+  "name": "@recon-nexus/api",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"pnpm dev:api\" \"pnpm dev:worker\"",
+    "build": "tsc",
+    "dev:api": "node --import tsx/esm src/index.ts",
+    "dev:worker": "node --import tsx/esm src/worker.ts"
+  },
+  "dependencies": {
+    "@recon-nexus/types": "workspace:*",
+    "@recon-nexus/logger": "workspace:*",
+    "@recon-nexus/db": "workspace:*",
+    "fastify": "^4.27.0",
+    "@fastify/cors": "^9.0.1",
+    "@fastify/websocket": "^10.0.1",
+    "bullmq": "^5.12.0",
+    "ioredis": "^5.4.1",
+    "uuid": "^10.0.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.15.7",
+    "@types/uuid": "^10.0.0",
+    "concurrently": "^8.2.2"
+  }
+}

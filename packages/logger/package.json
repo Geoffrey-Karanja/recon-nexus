@@ -1,0 +1,11 @@
+{
+  "name": "@recon-nexus/logger",
+  "version": "1.0.0",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "pino": "^9.2.0",
+    "pino-pretty": "^11.2.1"
+  },
+  "type": "module"
+}
