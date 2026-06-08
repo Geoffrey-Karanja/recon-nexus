@@ -1,13 +1,29 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { randomUUID } from 'crypto'
-import { scanQueue } from '../lib/queue.js'
 import sql from '@recon-nexus/db'
+import { executeScan } from '../services/runScan.js'
+import { requireAuth } from '../lib/authMiddleware.js'
 
 export const scanRoutes: FastifyPluginAsync = async (app) => {
+  // Protect all scan routes
+  app.addHook('preHandler', requireAuth)
+
   // Create new scan
   app.post<{ Body: { target: string; profile: 'passive' | 'full' | 'custom' } }>('/', async (req, reply) => {
-    const { target, profile = 'full' } = req.body
+    let { target, profile = 'full' } = req.body
     if (!target) return reply.code(400).send({ error: 'target is required' })
+
+    // Sanitize target — strip protocol, trailing slashes, whitespace
+    target = target.trim()
+      .replace(/^https?:\/\//, '')
+      .replace(/^www\./, '')
+      .replace(/\/.*$/, '')
+      .toLowerCase()
+
+    if (!target) return reply.code(400).send({ error: 'invalid target' })
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(target)) {
+      return reply.code(400).send({ error: 'target must be a valid domain (e.g. tesla.com)' })
+    }
 
     const id = randomUUID()
     const now = new Date().toISOString()
@@ -17,7 +33,8 @@ export const scanRoutes: FastifyPluginAsync = async (app) => {
       VALUES (${id}, ${target}, ${profile}, 'queued', ${now}, ${now})
     `
 
-    await scanQueue.add('run-scan', { scanId: id, target, profile })
+    // Fire and forget — no queue needed
+    setImmediate(() => executeScan(id, target, profile))
 
     return { scanId: id, status: 'queued' }
   })
@@ -37,4 +54,19 @@ export const scanRoutes: FastifyPluginAsync = async (app) => {
   app.get('/', async () => {
     return sql`SELECT * FROM scans ORDER BY created_at DESC LIMIT 50`
   })
+
+  // Delete a scan
+  app.delete<{ Params: { id: string } }>('/:id', async (req, reply) => {
+    const { id } = req.params
+    const [scan] = await sql`SELECT * FROM scans WHERE id = ${id}`
+    if (!scan) return reply.code(404).send({ error: 'not found' })
+
+    await sql`DELETE FROM findings WHERE scan_id = ${id}`
+    await sql`DELETE FROM tool_results WHERE scan_id = ${id}`
+    await sql`DELETE FROM scans WHERE id = ${id}`
+
+    return { success: true }
+  })
 }
+
+// This needs to be added inside scanRoutes - handled via index.ts instead

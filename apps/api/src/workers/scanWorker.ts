@@ -5,6 +5,8 @@ import { pubsub } from '../lib/pubsub.js'
 import sql from '@recon-nexus/db'
 import { logger } from '@recon-nexus/logger'
 import { spawn } from 'child_process'
+import { processRegistry } from '../lib/processRegistry.js'
+import geoip from 'geoip-lite'
 import { randomUUID } from 'crypto'
 
 interface ScanJob {
@@ -22,6 +24,7 @@ function runTool(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const proc = spawn(tool, args, { shell: false })
+    processRegistry.register(scanId, proc)
 
     proc.stdout.on('data', (data: Buffer) => {
       const lines = data.toString().split('\n').filter(Boolean)
@@ -148,7 +151,18 @@ async function runActive(scanId: string, target: string) {
       dnsxOutput.push(line)
       pubsub.publish(scanId, { type: 'tool:output', scanId, payload: { tool: 'dnsx', line } })
       const ipMatch = line.match(/\[(\d+\.\d+\.\d+\.\d+)\]/)
-      if (ipMatch) await saveFinding(scanId, 'ip', ipMatch[1], 'dnsx')
+      if (ipMatch) {
+        const ip = ipMatch[1]
+        const geo = geoip.lookup(ip)
+        const metadata: Record<string, unknown> = {}
+        if (geo) {
+          metadata.country = geo.country
+          metadata.city = geo.city
+          metadata.org = geo.org
+          metadata.ll = geo.ll
+        }
+        await saveFinding(scanId, 'ip', ip, 'dnsx', 'info', metadata)
+      }
     })
     await updateToolStatus(scanId, 'dnsx', 'done', dnsxOutput)
     pubsub.publish(scanId, { type: 'tool:done', scanId, payload: { tool: 'dnsx' } })
@@ -222,9 +236,13 @@ const worker = new Worker<ScanJob>(
 
     try {
       await runPassive(scanId, target)
+    await fetchCrtSh(target, scanId)
+    // await runAmass(target, scanId) -- disabled: too slow, use subfinder+crtsh
       if (profile === 'full') await runActive(scanId, target)
 
       await sql`UPDATE scans SET status = 'done', updated_at = now() WHERE id = ${scanId}`
+      processRegistry.cleanup(scanId)
+      processRegistry.cleanup(scanId)
       pubsub.publish(scanId, { type: 'scan:done', scanId, payload: {} })
       logger.info({ scanId }, 'Scan complete')
     } catch (err: any) {
@@ -240,3 +258,61 @@ worker.on('failed', (job, err) => {
 })
 
 logger.info('Scan worker started')
+
+async function fetchCrtSh(target: string, scanId: string) {
+  await sql`INSERT INTO tool_results (scan_id, tool, stage, status, started_at) VALUES (${scanId}, 'crtsh', 'passive', 'running', now())`
+  pubsub.publish(scanId, { type: 'tool:start', scanId, payload: { tool: 'crtsh' } })
+
+  const output: string[] = []
+  try {
+    const res = await fetch(`https://crt.sh/?q=%25.${target}&output=json`, { signal: AbortSignal.timeout(15000) })
+    if (!res.ok) throw new Error(`crt.sh returned ${res.status}`)
+    const text = await res.text()
+    let data: { name_value: string }[] = []
+    try { data = JSON.parse(text) } catch { throw new Error('crt.sh returned invalid JSON') }
+    const seen = new Set<string>()
+
+    for (const entry of data) {
+      const names = entry.name_value.split('\n')
+      for (const name of names) {
+        const clean = name.trim().replace(/^\*\./, '')
+        if (!seen.has(clean) && clean.endsWith(target) && clean !== target) {
+          seen.add(clean)
+          output.push(clean)
+          pubsub.publish(scanId, { type: 'tool:output', scanId, payload: { tool: 'crtsh', line: clean } })
+          await saveFinding(scanId, 'subdomain', clean, 'crtsh')
+        }
+      }
+    }
+
+    await updateToolStatus(scanId, 'crtsh', 'done', output)
+    pubsub.publish(scanId, { type: 'tool:done', scanId, payload: { tool: 'crtsh' } })
+    logger.info({ scanId, count: seen.size }, 'crt.sh done')
+  } catch (err: any) {
+    await updateToolStatus(scanId, 'crtsh', 'error', output, err.message)
+    pubsub.publish(scanId, { type: 'tool:error', scanId, payload: { tool: 'crtsh', error: err.message } })
+  }
+}
+
+async function runAmass(target: string, scanId: string) {
+  await sql`INSERT INTO tool_results (scan_id, tool, stage, status, started_at) VALUES (${scanId}, 'amass', 'passive', 'running', now())`
+  pubsub.publish(scanId, { type: 'tool:start', scanId, payload: { tool: 'amass' } })
+
+  const output: string[] = []
+  try {
+    await runTool('amass', ['enum', '-passive', '-d', target, '-timeout', '2'], scanId, 'amass', async (line) => {
+      output.push(line)
+      pubsub.publish(scanId, { type: 'tool:output', scanId, payload: { tool: 'amass', line } })
+      const subMatch = line.match(/[\w.-]+\.[a-z]{2,}/)
+      if (subMatch && subMatch[0].endsWith(target) && subMatch[0] !== target) {
+        await saveFinding(scanId, 'subdomain', subMatch[0], 'amass')
+      }
+    })
+    await updateToolStatus(scanId, 'amass', 'done', output)
+    pubsub.publish(scanId, { type: 'tool:done', scanId, payload: { tool: 'amass' } })
+    logger.info({ scanId }, 'amass done')
+  } catch (err: any) {
+    await updateToolStatus(scanId, 'amass', 'error', output, err.message)
+    pubsub.publish(scanId, { type: 'tool:error', scanId, payload: { tool: 'amass', error: err.message } })
+  }
+}

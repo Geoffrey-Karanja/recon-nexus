@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { createScan, getScans } from '../lib/api'
+import { createScan, getScans, deleteScan } from '../lib/api'
 import type { Scan } from '../types'
 
 interface Props { onScanCreated: (id: string) => void }
@@ -211,6 +211,20 @@ export default function Dashboard({ onScanCreated }: Props) {
                   {scan.status.toUpperCase()}
                 </span>
                 <span style={{ color: 'var(--text-dim)', fontSize: 16 }}>›</span>
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation()
+                    try { await deleteScan(scan.id) } catch {}
+                    setScans(prev => prev.filter(s => s.id !== scan.id))
+                  }}
+                  style={{
+                    background: 'none', border: '1px solid var(--border2)',
+                    borderRadius: 4, padding: '3px 10px', cursor: 'pointer',
+                    fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text-dim)',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--red)'; (e.currentTarget as HTMLElement).style.color = 'var(--red)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border2)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-dim)' }}
+                >✕</button>
               </div>
             ))}
           </div>
