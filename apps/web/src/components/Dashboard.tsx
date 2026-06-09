@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { createScan, getScans, deleteScan } from '../lib/api'
 import type { Scan } from '../types'
 
-interface Props { onScanCreated: (id: string) => void }
+interface Props { onScanCreated: (id: string) => void; onManageUsers: () => void }
 
 const statusColor: Record<string, string> = {
   queued: 'var(--yellow)',
@@ -20,7 +20,7 @@ const statusIcon: Record<string, string> = {
   idle: '○',
 }
 
-export default function Dashboard({ onScanCreated }: Props) {
+export default function Dashboard({ onScanCreated, onManageUsers }: Props) {
   const [target, setTarget] = useState('')
   const [profile, setProfile] = useState<'passive' | 'full'>('full')
   const [loading, setLoading] = useState(false)
@@ -73,6 +73,10 @@ export default function Dashboard({ onScanCreated }: Props) {
           <span style={{ fontFamily: 'var(--mono)', fontSize: 18, color: 'var(--text-bright)', letterSpacing: 3 }}>RECON_NEXUS</span>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button onClick={onManageUsers} style={{
+            fontFamily: 'var(--mono)', fontSize: 11, padding: '4px 12px', borderRadius: 4,
+            cursor: 'pointer', background: 'none', border: '1px solid var(--border2)', color: 'var(--text-dim)',
+          }}>⚙ USERS</button>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text-dim)' }}>SYS::ONLINE</span>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)', display: 'inline-block', animation: 'pulse-green 2s infinite' }} />
         </div>

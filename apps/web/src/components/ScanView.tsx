@@ -17,7 +17,20 @@ const typeIcon: Record<string, string> = {
 }
 
 function downloadReport(scanId: string) {
-  window.open(`/api/scans/${scanId}/report`, '_blank')
+  const token = localStorage.getItem('recon_token')
+  const base = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
+  fetch(`${base}/api/scans/${scanId}/report`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  .then(res => res.blob())
+  .then(blob => {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `recon-${scanId}.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
+  })
 }
 
 export default function ScanView({ scanId, onBack }: Props) {

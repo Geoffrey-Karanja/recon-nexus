@@ -45,3 +45,15 @@ await sql`CREATE INDEX IF NOT EXISTS tool_results_scan_id_idx ON tool_results(sc
 
 logger.info('Migrations complete')
 await sql.end()
+
+await sql`
+  CREATE TABLE IF NOT EXISTS users (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username    TEXT NOT NULL UNIQUE,
+    password    TEXT NOT NULL,
+    role        TEXT NOT NULL DEFAULT 'user',
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  )
+`
+
+logger.info('Users table ready')

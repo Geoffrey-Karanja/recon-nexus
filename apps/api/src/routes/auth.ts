@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import bcrypt from 'bcryptjs'
+import sql from '@recon-nexus/db'
 
 // Single admin user — change these before deploying
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'
@@ -10,17 +11,24 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   app.post<{ Body: { username: string; password: string } }>('/login', async (req, reply) => {
     const { username, password } = req.body
 
-    if (username !== ADMIN_USERNAME) {
-      return reply.code(401).send({ error: 'Invalid credentials' })
-    }
+    // Check DB users first
+    const [dbUser] = await sql`SELECT * FROM users WHERE username = ${username}`
 
-    const valid = await bcrypt.compare(password, ADMIN_PASSWORD_HASH)
-    if (!valid) {
-      return reply.code(401).send({ error: 'Invalid credentials' })
+    let role = 'user'
+    if (dbUser) {
+      const valid = await bcrypt.compare(password, dbUser.password)
+      if (!valid) return reply.code(401).send({ error: 'Invalid credentials' })
+      role = dbUser.role
+    } else {
+      // Fall back to env admin
+      if (username !== ADMIN_USERNAME) return reply.code(401).send({ error: 'Invalid credentials' })
+      const valid = await bcrypt.compare(password, ADMIN_PASSWORD_HASH)
+      if (!valid) return reply.code(401).send({ error: 'Invalid credentials' })
+      role = 'admin'
     }
 
     const token = app.jwt.sign(
-      { username, role: 'admin' },
+      { username, role },
       { expiresIn: '24h' }
     )
 

@@ -10,6 +10,7 @@ import websocket from '@fastify/websocket'
 import { logger } from '@recon-nexus/logger'
 import { scanRoutes } from './routes/scans.js'
 import { authRoutes } from './routes/auth.js'
+import { userRoutes } from './routes/users.js'
 import { wsRoutes } from './routes/ws.js'
 import { cancelRoutes } from './routes/cancel.js'
 import { reportRoutes } from './routes/reports.js'
@@ -30,6 +31,7 @@ await app.register(jwt, {
 await app.register(staticFiles, { root: '/tmp/recon-nexus-screenshots', prefix: '/api/screenshots/', decorateReply: false })
 await app.register(websocket)
 await app.register(authRoutes, { prefix: '/api/auth' })
+await app.register(userRoutes, { prefix: '/api/users' })
 await app.register(scanRoutes, { prefix: '/api/scans' })
  await app.register(cancelRoutes, { prefix: '/api/scans' })
  await app.register(reportRoutes, { prefix: '/api/scans' })
