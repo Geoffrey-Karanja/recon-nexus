@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import axios from 'axios'
+import { saveToken } from '../lib/auth'
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 interface Props { onLogin: () => void }
 
@@ -14,10 +16,11 @@ export default function Login({ onLogin }: Props) {
     setLoading(true)
     setError('')
     try {
-      await axios.post('/api/auth/login', { username, password }, { withCredentials: true })
+      const res = await axios.post(`${API_BASE}/api/auth/login`, { username, password })
+saveToken(res.data.token)
       onLogin()
     } catch (e: any) {
-      setError(e.response?.data?.error ?? 'Login failed')
+      setError(String(e.response?.data?.error ?? e.message ?? 'Login failed'))
     } finally {
       setLoading(false)
     }

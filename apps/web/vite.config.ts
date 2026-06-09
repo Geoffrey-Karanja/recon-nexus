@@ -5,11 +5,17 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    allowedHosts: ['ownership-says-thick-gathering.trycloudflare.com'],
     proxy: {
-      '/api': 'http://localhost:3001',
+      '/api': {
+        target: 'https://director-uri-land-championships.trycloudflare.com',
+        changeOrigin: true,
+        secure: true,
+      },
       '/ws': {
-        target: 'ws://localhost:3001',
+        target: 'wss://director-uri-land-championships.trycloudflare.com',
         ws: true,
+        changeOrigin: true,
       },
     },
   },

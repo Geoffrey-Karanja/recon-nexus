@@ -265,20 +265,20 @@ export default function ScanView({ scanId, onBack }: Props) {
                         <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--text-dim)' }}>
                           {f.discovered_by}
                         </span>
-                        {f.type === 'cve' && f.metadata?.score && (
+                        {f.type === 'cve' && f.metadata?.score != null && (
                           <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--red)', padding: '2px 6px', border: '1px solid var(--red-dim)', borderRadius: 3 }}>
                             CVSS {String(f.metadata.score)}
                           </span>
                         )}
-                        {f.type === 'cve' && f.metadata?.url && (
+                        {f.type === 'cve' && f.metadata?.url != null && (
                           <a href={String(f.metadata.url)} target="_blank" rel="noreferrer" style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--cyan)' }}>↗</a>
                         )}
-                        {f.metadata?.country && (
+                        {f.metadata?.country != null && (
                           <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--cyan)', padding: '2px 6px', border: '1px solid var(--cyan-dim)', borderRadius: 3 }}>
                             {String(f.metadata.country)}{f.metadata.city ? ' · ' + String(f.metadata.city) : ''}
                           </span>
                         )}
-                        {f.metadata?.screenshot && (
+                        {f.metadata?.screenshot != null && (
                           <a href={`/api/screenshots/${f.scan_id}/${String(f.metadata.screenshot).split('/').pop()}`} target="_blank" rel="noreferrer">
                             <img src={`/api/screenshots/${f.scan_id}/${String(f.metadata.screenshot).split('/').pop()}`} style={{ width: 80, height: 50, objectFit: 'cover', borderRadius: 3, border: '1px solid var(--border2)', cursor: 'pointer' }} alt="screenshot" />
                           </a>

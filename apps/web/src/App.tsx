@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
+import { getToken } from './lib/auth'
 import Dashboard from './components/Dashboard'
 import ScanView from './components/ScanView'
 import Login from './components/Login'
@@ -9,7 +10,9 @@ export default function App() {
   const [activeScanId, setActiveScanId] = useState<string | null>(null)
 
   useEffect(() => {
-    axios.get('/api/auth/me', { withCredentials: true })
+    axios.get(`${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${getToken()}` }
+    })
       .then(() => setAuthed(true))
       .catch(() => setAuthed(false))
   }, [])

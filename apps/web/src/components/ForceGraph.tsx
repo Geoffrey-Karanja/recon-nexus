@@ -4,8 +4,20 @@ import type { Finding } from '../types'
 
 interface Props { findings: Finding[]; target: string }
 
-interface Node { id: string; type: string; group: number }
-interface Link { source: string; target: string }
+interface GraphNode {
+  id: string
+  type: string
+  group: number
+  x?: number
+  y?: number
+  fx?: number | null
+  fy?: number | null
+}
+
+interface GraphLink {
+  source: string | GraphNode
+  target: string | GraphNode
+}
 
 const typeGroup: Record<string, number> = {
   root: 0, subdomain: 1, ip: 2, port: 3, email: 4, technology: 5, waf: 6, cve: 7
@@ -25,8 +37,8 @@ export default function ForceGraph({ findings, target }: Props) {
 
     d3.select(el).selectAll('*').remove()
 
-    const nodes: Node[] = [{ id: target, type: 'root', group: 0 }]
-    const links: Link[] = []
+    const nodes: GraphNode[] = [{ id: target, type: 'root', group: 0 }]
+    const links: GraphLink[] = []
     const seen = new Set<string>([target])
 
     findings.forEach(f => {
@@ -47,14 +59,10 @@ export default function ForceGraph({ findings, target }: Props) {
       }
     })
 
-    const svg = d3.select(el)
-      .attr('width', width).attr('height', height)
+    const svg = d3.select(el).attr('width', width).attr('height', height)
 
-    svg.append('defs').append('filter').attr('id', 'glow')
-      .append('feGaussianBlur').attr('stdDeviation', '3').attr('result', 'coloredBlur')
-
-    const sim = d3.forceSimulation<Node>(nodes)
-      .force('link', d3.forceLink<Node, Link>(links).id(d => d.id).distance(80).strength(0.5))
+    const sim = d3.forceSimulation(nodes as any)
+      .force('link', d3.forceLink(links as any).id((d: any) => d.id).distance(80).strength(0.5))
       .force('charge', d3.forceManyBody().strength(-200))
       .force('center', d3.forceCenter(width / 2, height / 2))
       .force('collision', d3.forceCollide(30))
@@ -70,33 +78,32 @@ export default function ForceGraph({ findings, target }: Props) {
 
     const node = g.append('g').selectAll('g').data(nodes).join('g')
       .attr('cursor', 'pointer')
-      .call(d3.drag<SVGGElement, Node>()
-        .on('start', (event, d) => { if (!event.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y })
-        .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y })
-        .on('end', (event, d) => { if (!event.active) sim.alphaTarget(0); d.fx = null; d.fy = null })
+      .call(d3.drag<any, any>()
+        .on('start', (event, d: any) => { if (!event.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y })
+        .on('drag', (event, d: any) => { d.fx = event.x; d.fy = event.y })
+        .on('end', (event, d: any) => { if (!event.active) sim.alphaTarget(0); d.fx = null; d.fy = null })
       )
 
     node.append('circle')
-      .attr('r', d => d.group === 0 ? 14 : 8)
-      .attr('fill', d => typeColor[d.group] ?? '#58d9f9')
+      .attr('r', (d: any) => d.group === 0 ? 14 : 8)
+      .attr('fill', (d: any) => typeColor[d.group] ?? '#58d9f9')
       .attr('fill-opacity', 0.2)
-      .attr('stroke', d => typeColor[d.group] ?? '#58d9f9')
-      .attr('stroke-width', d => d.group === 0 ? 2 : 1.5)
-      .attr('filter', 'url(#glow)')
+      .attr('stroke', (d: any) => typeColor[d.group] ?? '#58d9f9')
+      .attr('stroke-width', (d: any) => d.group === 0 ? 2 : 1.5)
 
     node.append('text')
-      .attr('dy', d => d.group === 0 ? -18 : -12)
+      .attr('dy', (d: any) => d.group === 0 ? -18 : -12)
       .attr('text-anchor', 'middle')
       .attr('font-family', 'Share Tech Mono, monospace')
-      .attr('font-size', d => d.group === 0 ? 12 : 9)
-      .attr('fill', d => typeColor[d.group] ?? '#c9d1d9')
-      .text(d => d.group === 0 ? d.id : d.id.split(':')[1]?.slice(0, 20) ?? d.id)
+      .attr('font-size', (d: any) => d.group === 0 ? 12 : 9)
+      .attr('fill', (d: any) => typeColor[d.group] ?? '#c9d1d9')
+      .text((d: any) => d.group === 0 ? d.id : d.id.split(':')[1]?.slice(0, 20) ?? d.id)
 
     sim.on('tick', () => {
       link
-        .attr('x1', d => (d.source as any).x).attr('y1', d => (d.source as any).y)
-        .attr('x2', d => (d.target as any).x).attr('y2', d => (d.target as any).y)
-      node.attr('transform', d => `translate(${d.x},${d.y})`)
+        .attr('x1', (d: any) => d.source.x).attr('y1', (d: any) => d.source.y)
+        .attr('x2', (d: any) => d.target.x).attr('y2', (d: any) => d.target.y)
+      node.attr('transform', (d: any) => `translate(${d.x},${d.y})`)
     })
 
     return () => { sim.stop() }

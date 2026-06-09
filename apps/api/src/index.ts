@@ -16,7 +16,7 @@ import { reportRoutes } from './routes/reports.js'
 
 const app = Fastify({ logger: false })
 
-await app.register(cors, { origin: 'http://localhost:5173', credentials: true })
+await app.register(cors, { origin: true, credentials: true })
 await app.register(rateLimit, {
   max: 100,
   timeWindow: '1 minute',

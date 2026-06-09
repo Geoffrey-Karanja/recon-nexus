@@ -7,7 +7,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false, error: '' }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error: error.message }
+    return { hasError: true, error: String(error?.message ?? error) }
   }
 
   render() {

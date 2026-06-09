@@ -1,6 +1,8 @@
 import { useEffect, useRef, useCallback } from 'react'
 import type { WsEvent } from '../types'
 
+const WS_BASE = import.meta.env.VITE_WS_URL || 'ws://localhost:3001'
+
 export function useWs(scanId: string | null, onEvent: (e: WsEvent) => void) {
   const wsRef = useRef<WebSocket | null>(null)
   const onEventRef = useRef(onEvent)
@@ -8,7 +10,7 @@ export function useWs(scanId: string | null, onEvent: (e: WsEvent) => void) {
 
   const connect = useCallback(() => {
     if (!scanId) return
-    const ws = new WebSocket(`ws://localhost:3001/ws/${scanId}`)
+    const ws = new WebSocket(`${WS_BASE}/ws/${scanId}`)
     wsRef.current = ws
 
     ws.onmessage = (e) => {
@@ -18,9 +20,7 @@ export function useWs(scanId: string | null, onEvent: (e: WsEvent) => void) {
       } catch {}
     }
 
-    ws.onclose = () => {
-      wsRef.current = null
-    }
+    ws.onclose = () => { wsRef.current = null }
   }, [scanId])
 
   useEffect(() => {
