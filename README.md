@@ -2,6 +2,11 @@
 
 > Self-hosted OSINT & reconnaissance orchestration platform for security professionals.
 
+## 🌐 Live Demo
+**[https://railcar-junction-dreamlike.ngrok-free.dev](https://railcar-junction-dreamlike.ngrok-free.dev)**
+
+> Login with demo credentials: `admin` / `recon2024`
+
 ![License](https://img.shields.io/badge/license-MIT-green) ![Node](https://img.shields.io/badge/node-v24-blue) ![Platform](https://img.shields.io/badge/platform-Kali%20Linux-red)
 
 ---
