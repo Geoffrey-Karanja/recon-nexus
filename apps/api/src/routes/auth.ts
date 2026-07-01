@@ -7,6 +7,26 @@ const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'recon2024', 10)
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
+  // Public register
+  app.post<{ Body: { username: string; password: string } }>('/register', async (req, reply) => {
+    const { username, password } = req.body
+    if (!username || !password) return reply.code(400).send({ error: 'username and password required' })
+    if (password.length < 6) return reply.code(400).send({ error: 'password must be at least 6 characters' })
+
+    const hash = await bcrypt.hash(password, 10)
+    try {
+      const [user] = await sql`
+        INSERT INTO users (username, password, role)
+        VALUES (${username}, ${hash}, 'user')
+        RETURNING id, username, role
+      `
+      const token = app.jwt.sign({ username: user.username, role: user.role }, { expiresIn: '24h' })
+      return { success: true, token, user: { username: user.username, role: user.role } }
+    } catch {
+      return reply.code(409).send({ error: 'Username already taken' })
+    }
+  })
+
   // Login
   app.post<{ Body: { username: string; password: string } }>('/login', async (req, reply) => {
     const { username, password } = req.body

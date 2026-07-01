@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import axios from 'axios'
 import { saveToken } from '../lib/auth'
+
+interface Props { onLogin: () => void; onRegister: () => void }
+
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
-interface Props { onLogin: () => void }
-
-export default function Login({ onLogin }: Props) {
+export default function Login({ onLogin, onRegister }: Props) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -17,7 +18,7 @@ export default function Login({ onLogin }: Props) {
     setError('')
     try {
       const res = await axios.post(`${API_BASE}/api/auth/login`, { username, password })
-saveToken(res.data.token)
+      saveToken(res.data.token)
       onLogin()
     } catch (e: any) {
       setError(String(e.response?.data?.error ?? e.message ?? 'Login failed'))
@@ -31,27 +32,22 @@ saveToken(res.data.token)
       minHeight: '100vh', background: 'var(--bg)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
-      {/* Background grid */}
       <div style={{
         position: 'fixed', inset: 0, opacity: 0.03,
         backgroundImage: 'linear-gradient(var(--green) 1px, transparent 1px), linear-gradient(90deg, var(--green) 1px, transparent 1px)',
-        backgroundSize: '40px 40px',
-        pointerEvents: 'none',
+        backgroundSize: '40px 40px', pointerEvents: 'none',
       }} />
 
       <div style={{
         background: 'var(--bg2)', border: '1px solid var(--border)',
         borderRadius: 12, padding: '48px 40px', width: 380,
-        position: 'relative', overflow: 'hidden',
-        animation: 'fadeIn 0.4s ease',
+        position: 'relative', overflow: 'hidden', animation: 'fadeIn 0.4s ease',
       }}>
-        {/* Top accent line */}
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, height: 2,
           background: 'linear-gradient(90deg, var(--green), var(--cyan), transparent)',
         }} />
 
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ marginBottom: 16 }}>
             <circle cx="24" cy="24" r="22" stroke="var(--green)" strokeWidth="1.5" />
@@ -70,21 +66,17 @@ saveToken(res.data.token)
           </div>
         </div>
 
-        {/* Form */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--text-dim)', marginBottom: 6, letterSpacing: 1 }}>
-              USERNAME
-            </div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--text-dim)', marginBottom: 6, letterSpacing: 1 }}>USERNAME</div>
             <input
               value={username}
               onChange={e => setUsername(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
               placeholder="operator"
               style={{
-                width: '100%', background: 'var(--bg3)',
-                border: '1px solid var(--border2)', borderRadius: 6,
-                padding: '10px 14px', fontFamily: 'var(--mono)',
+                width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)',
+                borderRadius: 6, padding: '10px 14px', fontFamily: 'var(--mono)',
                 fontSize: 14, color: 'var(--text-bright)', outline: 'none',
               }}
               onFocus={e => e.target.style.borderColor = 'var(--green)'}
@@ -93,9 +85,7 @@ saveToken(res.data.token)
           </div>
 
           <div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--text-dim)', marginBottom: 6, letterSpacing: 1 }}>
-              PASSWORD
-            </div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--text-dim)', marginBottom: 6, letterSpacing: 1 }}>PASSWORD</div>
             <input
               type="password"
               value={password}
@@ -103,9 +93,8 @@ saveToken(res.data.token)
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
               placeholder="••••••••"
               style={{
-                width: '100%', background: 'var(--bg3)',
-                border: '1px solid var(--border2)', borderRadius: 6,
-                padding: '10px 14px', fontFamily: 'var(--mono)',
+                width: '100%', background: 'var(--bg3)', border: '1px solid var(--border2)',
+                borderRadius: 6, padding: '10px 14px', fontFamily: 'var(--mono)',
                 fontSize: 14, color: 'var(--text-bright)', outline: 'none',
               }}
               onFocus={e => e.target.style.borderColor = 'var(--green)'}
@@ -114,9 +103,11 @@ saveToken(res.data.token)
           </div>
 
           {error && (
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--red)', padding: '8px 12px', background: 'var(--red-dim)', borderRadius: 4, border: '1px solid var(--red)' }}>
-              ✕ {error}
-            </div>
+            <div style={{
+              fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--red)',
+              padding: '8px 12px', background: 'var(--red-dim)',
+              borderRadius: 4, border: '1px solid var(--red)',
+            }}>✕ {error}</div>
           )}
 
           <button
@@ -135,6 +126,17 @@ saveToken(res.data.token)
               ? <><span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid var(--green)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> AUTHENTICATING</>
               : '▶ AUTHENTICATE'
             }
+          </button>
+
+          <button
+            onClick={onRegister}
+            style={{
+              padding: '8px', borderRadius: 6, cursor: 'pointer',
+              fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: 1,
+              border: 'none', background: 'none', color: 'var(--text-dim)',
+            }}
+          >
+            → CREATE ACCOUNT
           </button>
         </div>
       </div>

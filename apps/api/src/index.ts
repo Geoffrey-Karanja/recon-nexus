@@ -37,6 +37,15 @@ await app.register(scanRoutes, { prefix: '/api/scans' })
  await app.register(reportRoutes, { prefix: '/api/scans' })
 await app.register(wsRoutes)
 
+// Serve frontend AFTER all API routes
+await app.register(staticFiles, { root: '/home/benjamin/recon-nexus/apps/api/public', prefix: '/', decorateReply: false })
+app.setNotFoundHandler((req, reply) => {
+  if (!req.url.startsWith('/api') && !req.url.startsWith('/ws')) {
+    return reply.sendFile('index.html')
+  }
+  reply.code(404).send({ error: 'Not found' })
+})
+
 app.get('/health', async (req, reply) => {
   const checks: Record<string, string> = {}
 
